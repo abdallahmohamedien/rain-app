@@ -1,4 +1,5 @@
 import { GlassCard } from '@/components/GlassCard';
+import { HourlyList } from '@/components/HourlyList';
 import { useWeather } from '@/hooks/useWeather';
 import { LinearGradient } from 'expo-linear-gradient';
 import React, { useEffect } from 'react';
@@ -31,7 +32,7 @@ export default function HomeScreen() {
         </View>
 
         {weather && <GlassCard weather={weather} />}
-
+        {weather && <HourlyList hours={weather.forecast.forecastday[0].hour} />}
       </ScrollView>
     </LinearGradient>
   );

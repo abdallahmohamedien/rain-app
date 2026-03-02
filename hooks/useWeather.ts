@@ -5,26 +5,38 @@ import { useWeatherStore } from "../store/weatherStore";
 
 export const useWeather = () => {
   const [loading, setLoading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
   const { weather, setWeather } = useWeatherStore();
 
   const fetchWeather = useCallback(async () => {
     try {
       setLoading(true);
-      let { status } = await Location.requestForegroundPermissionsAsync();
-      if (status !== "granted") return;
+      setError(null);
 
+      // 1. طلب إذن الوصول للموقع
+      let { status } = await Location.requestForegroundPermissionsAsync();
+      if (status !== "granted") {
+        setError("Permission to access location was denied");
+        setLoading(false);
+        return;
+      }
+
+      // 2. جلب الموقع الحالي بدقة عالية
       let location = await Location.getCurrentPositionAsync({});
+
+      // 3. جلب بيانات الطقس بناءً على الإحداثيات
       const data = await getWeather(
         location.coords.latitude,
         location.coords.longitude,
       );
       setWeather(data);
-    } catch (error) {
-      console.error("Fetch Error:", error);
+    } catch (err) {
+      setError("Something went wrong. Please try again.");
+      console.error(err);
     } finally {
       setLoading(false);
     }
   }, [setWeather]);
 
-  return { weather, loading, fetchWeather };
+  return { weather, loading, error, fetchWeather };
 };

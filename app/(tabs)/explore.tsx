@@ -1,112 +1,143 @@
-import { Image } from 'expo-image';
-import { Platform, StyleSheet } from 'react-native';
+import { getWeatherByCity } from '@/api/weather.api';
+import { useWeatherStore } from '@/store/weatherStore';
+import axios from 'axios';
+import { LinearGradient } from 'expo-linear-gradient';
+import { useRouter } from 'expo-router';
+import { MapPin, Search } from 'lucide-react-native';
+import React, { useEffect, useState } from 'react';
+import { ActivityIndicator, FlatList, StyleSheet, Text, TextInput, TouchableOpacity, View } from 'react-native';
 
-import { Collapsible } from '@/components/ui/collapsible';
-import { ExternalLink } from '@/components/external-link';
-import ParallaxScrollView from '@/components/parallax-scroll-view';
-import { ThemedText } from '@/components/themed-text';
-import { ThemedView } from '@/components/themed-view';
-import { IconSymbol } from '@/components/ui/icon-symbol';
-import { Fonts } from '@/constants/theme';
+const API_KEY = '7754215307e84719877224203262602';
 
-export default function TabTwoScreen() {
+export default function SearchScreen() {
+  const [search, setSearch] = useState('');
+  const [results, setResults] = useState<any[]>([]);
+  const [loading, setLoading] = useState(false);
+
+  const router = useRouter();
+  const setGlobalWeather = useWeatherStore((state) => state.setWeather);
+
+  useEffect(() => {
+    const searchCity = async () => {
+      if (search.length < 3) {
+        setResults([]);
+        return;
+      }
+
+      try {
+        setLoading(true);
+        const response = await axios.get(
+          `https://api.weatherapi.com/v1/search.json?key=${API_KEY}&q=${search}`
+        );
+        setResults(response.data);
+      } catch (error) {
+        console.error("Search Error:", error);
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    const delayDebounceFn = setTimeout(() => {
+      searchCity();
+    }, 500);
+
+    return () => clearTimeout(delayDebounceFn);
+  }, [search]);
+
+
+  const handleSelectCity = async (cityName: string) => {
+    try {
+      setLoading(true);
+
+      const data = await getWeatherByCity(cityName);
+
+
+      setGlobalWeather(data);
+
+
+      router.push('/');
+    } catch (error) {
+      console.error("Fetch City Weather Error:", error);
+      alert("Failed to get weather for this city.");
+    } finally {
+      setLoading(false);
+    }
+  };
+
   return (
-    <ParallaxScrollView
-      headerBackgroundColor={{ light: '#D0D0D0', dark: '#353636' }}
-      headerImage={
-        <IconSymbol
-          size={310}
-          color="#808080"
-          name="chevron.left.forwardslash.chevron.right"
-          style={styles.headerImage}
-        />
-      }>
-      <ThemedView style={styles.titleContainer}>
-        <ThemedText
-          type="title"
-          style={{
-            fontFamily: Fonts.rounded,
-          }}>
-          Explore
-        </ThemedText>
-      </ThemedView>
-      <ThemedText>This app includes example code to help you get started.</ThemedText>
-      <Collapsible title="File-based routing">
-        <ThemedText>
-          This app has two screens:{' '}
-          <ThemedText type="defaultSemiBold">app/(tabs)/index.tsx</ThemedText> and{' '}
-          <ThemedText type="defaultSemiBold">app/(tabs)/explore.tsx</ThemedText>
-        </ThemedText>
-        <ThemedText>
-          The layout file in <ThemedText type="defaultSemiBold">app/(tabs)/_layout.tsx</ThemedText>{' '}
-          sets up the tab navigator.
-        </ThemedText>
-        <ExternalLink href="https://docs.expo.dev/router/introduction">
-          <ThemedText type="link">Learn more</ThemedText>
-        </ExternalLink>
-      </Collapsible>
-      <Collapsible title="Android, iOS, and web support">
-        <ThemedText>
-          You can open this project on Android, iOS, and the web. To open the web version, press{' '}
-          <ThemedText type="defaultSemiBold">w</ThemedText> in the terminal running this project.
-        </ThemedText>
-      </Collapsible>
-      <Collapsible title="Images">
-        <ThemedText>
-          For static images, you can use the <ThemedText type="defaultSemiBold">@2x</ThemedText> and{' '}
-          <ThemedText type="defaultSemiBold">@3x</ThemedText> suffixes to provide files for
-          different screen densities
-        </ThemedText>
-        <Image
-          source={require('@/assets/images/react-logo.png')}
-          style={{ width: 100, height: 100, alignSelf: 'center' }}
-        />
-        <ExternalLink href="https://reactnative.dev/docs/images">
-          <ThemedText type="link">Learn more</ThemedText>
-        </ExternalLink>
-      </Collapsible>
-      <Collapsible title="Light and dark mode components">
-        <ThemedText>
-          This template has light and dark mode support. The{' '}
-          <ThemedText type="defaultSemiBold">useColorScheme()</ThemedText> hook lets you inspect
-          what the user&apos;s current color scheme is, and so you can adjust UI colors accordingly.
-        </ThemedText>
-        <ExternalLink href="https://docs.expo.dev/develop/user-interface/color-themes/">
-          <ThemedText type="link">Learn more</ThemedText>
-        </ExternalLink>
-      </Collapsible>
-      <Collapsible title="Animations">
-        <ThemedText>
-          This template includes an example of an animated component. The{' '}
-          <ThemedText type="defaultSemiBold">components/HelloWave.tsx</ThemedText> component uses
-          the powerful{' '}
-          <ThemedText type="defaultSemiBold" style={{ fontFamily: Fonts.mono }}>
-            react-native-reanimated
-          </ThemedText>{' '}
-          library to create a waving hand animation.
-        </ThemedText>
-        {Platform.select({
-          ios: (
-            <ThemedText>
-              The <ThemedText type="defaultSemiBold">components/ParallaxScrollView.tsx</ThemedText>{' '}
-              component provides a parallax effect for the header image.
-            </ThemedText>
-          ),
-        })}
-      </Collapsible>
-    </ParallaxScrollView>
+    <LinearGradient colors={['#1e293b', '#0f172a']} style={styles.container}>
+      <View style={styles.header}>
+        <Text style={styles.title}>Explore</Text>
+        <View style={styles.searchBar}>
+          <Search color="#94a3b8" size={20} />
+          <TextInput
+            placeholder="Search for a city..."
+            placeholderTextColor="#94a3b8"
+            style={styles.input}
+            value={search}
+            onChangeText={setSearch}
+            autoFocus={false}
+          />
+          {loading && <ActivityIndicator size="small" color="#60a5fa" />}
+        </View>
+      </View>
+
+      <FlatList
+        data={results}
+        keyExtractor={(item) => item.id.toString()}
+        showsVerticalScrollIndicator={false}
+        ListEmptyComponent={
+          !loading && search.length > 2 ? (
+            <View style={styles.emptyContainer}>
+              <Text style={styles.emptyText}>No cities found for {search}</Text>
+            </View>
+          ) : null
+        }
+        renderItem={({ item }) => (
+          <TouchableOpacity
+            style={styles.cityCard}
+            onPress={() => handleSelectCity(item.name)}
+          >
+            <View style={styles.cityInfo}>
+              <MapPin color="#60a5fa" size={18} />
+              <View>
+                <Text style={styles.cityName}>{item.name}</Text>
+                <Text style={styles.cityRegion}>{item.region}, {item.country}</Text>
+              </View>
+            </View>
+          </TouchableOpacity>
+        )}
+      />
+    </LinearGradient>
   );
 }
 
 const styles = StyleSheet.create({
-  headerImage: {
-    color: '#808080',
-    bottom: -90,
-    left: -35,
-    position: 'absolute',
-  },
-  titleContainer: {
+  container: { flex: 1, paddingTop: 60, paddingHorizontal: 20 },
+  header: { marginBottom: 20 },
+  title: { color: '#fff', fontSize: 32, fontWeight: 'bold', marginBottom: 20 },
+  searchBar: {
     flexDirection: 'row',
-    gap: 8,
+    backgroundColor: 'rgba(255,255,255,0.1)',
+    padding: 15,
+    borderRadius: 20,
+    alignItems: 'center',
+    gap: 10,
+    borderWidth: 1,
+    borderColor: 'rgba(255,255,255,0.1)'
   },
+  input: { color: '#fff', flex: 1, fontSize: 16 },
+  cityCard: {
+    backgroundColor: 'rgba(255,255,255,0.05)',
+    padding: 18,
+    borderRadius: 15,
+    marginBottom: 10,
+    borderWidth: 1,
+    borderColor: 'rgba(255,255,255,0.05)'
+  },
+  cityInfo: { flexDirection: 'row', alignItems: 'center', gap: 12 },
+  cityName: { color: '#fff', fontSize: 18, fontWeight: '600' },
+  cityRegion: { color: '#94a3b8', fontSize: 13, marginTop: 4 },
+  emptyContainer: { marginTop: 40, alignItems: 'center' },
+  emptyText: { color: '#94a3b8', textAlign: 'center', fontSize: 16 }
 });

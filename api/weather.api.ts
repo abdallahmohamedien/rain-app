@@ -14,3 +14,14 @@ export const getWeather = async (lat: number, lon: number) => {
   });
   return response.data;
 };
+export const getWeatherByCity = async (cityName: string) => {
+  const response = await axios.get(`${BASE_URL}/forecast.json`, {
+    params: {
+      key: API_KEY,
+      q: cityName,
+      days: 3,
+      aqi: "no",
+    },
+  });
+  return response.data;
+};

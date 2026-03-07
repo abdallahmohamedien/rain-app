@@ -13,14 +13,15 @@ import {
 } from 'react-native';
 
 // Core Logic & Components
-import { GlassCard } from '@/components/GlassCard'; // سيعرض توقعات المطر لـ 3 أيام
-import { HourlyList } from '@/components/HourlyList'; // سيعرض احتمالية المطر بالساعات
+import { GlassCard } from '@/components/GlassCard';
+import { HourlyList } from '@/components/HourlyList';
 import { RainAlert } from '@/components/RainAlert';
 import { RainEffect } from '@/components/RainEffect';
+import { RainGraph } from '@/components/RainGraph';
 import { SnowEffect } from '@/components/SnowEffect';
+import { SunCycle } from '@/components/SunCycle';
 import { WeatherInfoGrid } from '@/components/WeatherInfoGrid';
 import { useWeather } from '@/hooks/useWeather';
-
 const { height } = Dimensions.get('window');
 
 export default function HomeScreen() {
@@ -30,7 +31,6 @@ export default function HomeScreen() {
     fetchWeather();
   }, [fetchWeather]);
 
-  // خلفية داكنة صلبة للابتعاد عن ستايل iOS الشفاف
   const backgroundColors = useMemo((): [string, string, ...string[]] => {
     return ['#0f172a', '#1e293b'];
   }, []);
@@ -39,7 +39,6 @@ export default function HomeScreen() {
   const isRaining = conditionText.includes('rain') || conditionText.includes('drizzle');
   const isSnowing = conditionText.includes('snow') || conditionText.includes('blizzard');
 
-  // شاشة التحميل
   if (loading && !weather) {
     return (
       <View style={[styles.container, styles.center]}>
@@ -54,7 +53,6 @@ export default function HomeScreen() {
       <StatusBar barStyle="light-content" />
       <LinearGradient colors={backgroundColors} style={styles.container}>
 
-        {/* تأثيرات الجو */}
         {isRaining && <RainEffect />}
         {isSnowing && <SnowEffect />}
 
@@ -62,44 +60,59 @@ export default function HomeScreen() {
           contentContainerStyle={styles.scroll}
           showsVerticalScrollIndicator={false}
           refreshControl={
-            <RefreshControl
-              refreshing={loading}
-              onRefresh={fetchWeather}
-              tintColor="#60a5fa"
-            />
+            <RefreshControl refreshing={loading} onRefresh={fetchWeather} tintColor="#60a5fa" />
           }
         >
-          {/* Header Section: تصميم عصري محاذاة لليسار */}
+          {/* Header Section */}
           <View style={styles.header}>
             <View style={styles.locationRow}>
               <Navigation color="#60a5fa" size={14} />
               <Text style={styles.cityText}>{weather?.location?.name.toUpperCase() || 'UNKNOWN'}</Text>
             </View>
-            {weather && <RainAlert condition={weather.current.condition.text} />}
+
+            <View style={styles.alertWrapper}>
+              {weather && <RainAlert condition={weather.current.condition.text} />}
+            </View>
+
             <View style={styles.mainTempRow}>
               <Text style={styles.tempText}>
                 {Math.round(weather?.current?.temp_c || 0)}°
               </Text>
               <View style={styles.conditionBox}>
-                <CloudRain color="#60a5fa" size={24} />
+                <CloudRain color="#60a5fa" size={28} />
                 <Text style={styles.conditionText}>{weather?.current?.condition?.text}</Text>
               </View>
             </View>
           </View>
+          {weather && (
+            <SunCycle
+              sunData={{
+                sunrise: weather.forecast.forecastday[0].astro.sunrise,
+                sunset: weather.forecast.forecastday[0].astro.sunset
+              }}
+            />
+          )}
 
           {weather && (
             <View style={styles.content}>
 
-              {/* 1. قسم احتمالية المطر بالساعات */}
+              {/* Rain Probability & Graph */}
               <View style={styles.sectionContainer}>
                 <Text style={styles.sectionTitle}>Rain Probability</Text>
-                <HourlyList hours={weather.forecast.forecastday[0].hour} />
+                <View style={styles.hourlyWrapper}>
+                  <HourlyList hours={weather.forecast.forecastday[0].hour} />
+                </View>
+                <View style={styles.graphWrapper}>
+                  <RainGraph hours={weather.forecast.forecastday[0].hour} />
+                </View>
               </View>
 
-              {/* 2. شبكة تفاصيل الطقس (الرطوبة، الرياح، الخ) */}
-              <WeatherInfoGrid weather={weather} />
 
-              {/* 3. توقعات الأمطار للأيام القادمة */}
+              <View style={styles.gridWrapper}>
+                <WeatherInfoGrid weather={weather} />
+              </View>
+
+              {/* 3-Day Forecast */}
               <View style={styles.forecastWrapper}>
                 <Text style={styles.sectionTitle}>Next Days Rain</Text>
                 <GlassCard weather={weather} />
@@ -129,19 +142,22 @@ const styles = StyleSheet.create({
     fontWeight: '500'
   },
   scroll: {
-    paddingTop: height * 0.08,
+    paddingTop: height * 0.07,
     paddingBottom: 40
   },
   header: {
     paddingHorizontal: 25,
-    marginBottom: 20,
-    alignItems: 'flex-start', // محاذاة لليسار
+    marginBottom: 15,
   },
   locationRow: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 6,
-    marginBottom: 5,
+    gap: 8,
+    marginBottom: 12,
+  },
+  alertWrapper: {
+    width: '100%',
+    marginBottom: 15,
   },
   cityText: {
     color: '#94a3b8',
@@ -151,29 +167,40 @@ const styles = StyleSheet.create({
   },
   mainTempRow: {
     flexDirection: 'row',
-    alignItems: 'flex-end',
-    gap: 15,
+    alignItems: 'center',
+    gap: 20,
   },
   tempText: {
     color: '#fff',
-    fontSize: 90,
+    fontSize: 85,
     fontWeight: '900',
-    lineHeight: 100,
   },
   conditionBox: {
-    paddingBottom: 20,
+    justifyContent: 'center',
     gap: 4
   },
   conditionText: {
     color: '#60a5fa',
-    fontSize: 16,
+    fontSize: 18,
     fontWeight: '600'
   },
   content: {
     width: '100%',
   },
   sectionContainer: {
-    marginBottom: 25,
+    marginBottom: 20,
+  },
+  hourlyWrapper: {
+    marginBottom: 10,
+  },
+  graphWrapper: {
+    paddingHorizontal: 10,
+
+  },
+  gridWrapper: {
+    width: '100%',
+    paddingHorizontal: 5,
+    marginBottom: 20,
   },
   sectionTitle: {
     color: '#fff',
@@ -186,6 +213,5 @@ const styles = StyleSheet.create({
   forecastWrapper: {
     width: '100%',
     paddingHorizontal: 20,
-    marginTop: 10
   }
 });

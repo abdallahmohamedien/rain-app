@@ -13,26 +13,38 @@ export const useWeather = () => {
       setLoading(true);
       setError(null);
 
-      // 1. طلب إذن الوصول للموقع
+      // 1. طلب الإذن للوصول للموقع (Permissions)
       let { status } = await Location.requestForegroundPermissionsAsync();
       if (status !== "granted") {
-        setError("Permission to access location was denied");
+        setError("Location permission is required to show rain data.");
         setLoading(false);
         return;
       }
 
-      // 2. جلب الموقع الحالي بدقة عالية
-      let location = await Location.getCurrentPositionAsync({});
+      // 2. جلب الموقع الحالي (تأكدي من استخدام getLastKnownPosition أولاً لسرعة الأداء)
+      let location = await Location.getLastKnownPositionAsync({});
 
-      // 3. جلب بيانات الطقس بناءً على الإحداثيات
+      // إذا لم يتوفر موقع مسجل مسبقاً، نطلب الموقع الحالي بدقة عالية
+      if (!location) {
+        location = await Location.getCurrentPositionAsync({
+          accuracy: Location.Accuracy.Balanced, // Balanced أسرع وأقل استهلاكاً للبطارية من High
+        });
+      }
+
+      // 3. إرسال الإحداثيات الـ API
       const data = await getWeather(
         location.coords.latitude,
         location.coords.longitude,
       );
-      setWeather(data);
-    } catch (err) {
-      setError("Something went wrong. Please try again.");
-      console.error(err);
+
+      if (data) {
+        setWeather(data);
+      } else {
+        setError("Rain data unavailable for your current location.");
+      }
+    } catch (err: any) {
+      setError("Unable to get your current location. Please check your GPS.");
+      console.error("Fetch Error:", err.message);
     } finally {
       setLoading(false);
     }

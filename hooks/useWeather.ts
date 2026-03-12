@@ -13,7 +13,6 @@ export const useWeather = () => {
       setLoading(true);
       setError(null);
 
-      // 1. طلب الإذن للوصول للموقع (Permissions)
       let { status } = await Location.requestForegroundPermissionsAsync();
       if (status !== "granted") {
         setError("Location permission is required to show rain data.");
@@ -21,17 +20,14 @@ export const useWeather = () => {
         return;
       }
 
-      // 2. جلب الموقع الحالي (تأكدي من استخدام getLastKnownPosition أولاً لسرعة الأداء)
       let location = await Location.getLastKnownPositionAsync({});
 
-      // إذا لم يتوفر موقع مسجل مسبقاً، نطلب الموقع الحالي بدقة عالية
       if (!location) {
         location = await Location.getCurrentPositionAsync({
-          accuracy: Location.Accuracy.Balanced, // Balanced أسرع وأقل استهلاكاً للبطارية من High
+          accuracy: Location.Accuracy.Balanced,
         });
       }
 
-      // 3. إرسال الإحداثيات الـ API
       const data = await getWeather(
         location.coords.latitude,
         location.coords.longitude,

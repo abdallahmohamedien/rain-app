@@ -18,9 +18,11 @@ import { HourlyList } from '@/components/HourlyList';
 import { RainAlert } from '@/components/RainAlert';
 import { RainEffect } from '@/components/RainEffect';
 import { RainGraph } from '@/components/RainGraph';
+import { SafeDriving } from '@/components/SafeDriving';
 import { SnowEffect } from '@/components/SnowEffect';
 import { SunCycle } from '@/components/SunCycle';
 import { WeatherInfoGrid } from '@/components/WeatherInfoGrid';
+import { WeatherWardrobe } from '@/components/WeatherWardrobe';
 import { useWeather } from '@/hooks/useWeather';
 const { height } = Dimensions.get('window');
 
@@ -91,6 +93,13 @@ export default function HomeScreen() {
                 sunset: weather.forecast.forecastday[0].astro.sunset
               }}
             />
+          )}
+
+          {weather && (
+            <View style={styles.smartSection}>
+              <WeatherWardrobe weather={weather} />
+              <SafeDriving weather={weather} />
+            </View>
           )}
 
           {weather && (
@@ -213,5 +222,9 @@ const styles = StyleSheet.create({
   forecastWrapper: {
     width: '100%',
     paddingHorizontal: 20,
+  },
+  smartSection: {
+    gap: 15,
+    marginBottom: 20,
   }
 });
